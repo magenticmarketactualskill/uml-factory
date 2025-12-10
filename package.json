@@ -1,0 +1,25 @@
+{
+  "name": "uml-factory",
+  "version": "1.0.0",
+  "description": "UML Factory - A Rails 8 application for creating and managing UML diagrams",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@inertiajs/juris": "git+https://github.com/magenticmarketactualskill/inertia-juris.git#packages/juris",
+    "juris": "latest",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "vite-plugin-ruby": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

@@ -1,0 +1,205 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+require 'pathname'
+
+# Change to the application root directory
+APP_ROOT = Pathname.new File.expand_path('..', __dir__)
+Dir.chdir(APP_ROOT) do
+  class ProcessManager
+    RAILS_PORT = 3000
+    VITE_PORT = 3036
+
+    def initialize
+      FileUtils.mkdir_p('tmp/pids')
+      FileUtils.mkdir_p('log')
+    end
+
+    def start
+      puts "🚀 UML Factory Development Server Manager"
+      puts "=" * 50
+      puts ""
+      puts "To start the development servers, run these commands in separate terminals:"
+      puts ""
+      puts "Terminal 1 (Rails):"
+      puts "  bundle exec rails server --port #{RAILS_PORT}"
+      puts ""
+      puts "Terminal 2 (Vite):"
+      puts "  bundle exec vite dev"
+      puts ""
+      puts "Once both are running:"
+      puts "📱 Rails: http://localhost:#{RAILS_PORT}"
+      puts "⚡ Vite:  http://localhost:#{VITE_PORT}/vite-dev/"
+      puts ""
+      puts "Press Ctrl+C in each terminal to stop the servers"
+      puts ""
+      puts "Or use 'bin/run stop' to kill all processes"
+    end
+
+    def stop
+      puts "🛑 Stopping UML Factory development servers..."
+      
+      stopped_any = false
+      
+      # Stop Rails processes
+      rails_pids = `pgrep -f 'rails server'`.split.map(&:strip).reject(&:empty?)
+      unless rails_pids.empty?
+        rails_pids.each do |pid|
+          system("kill #{pid}")
+        end
+        puts "✅ Stopped Rails server(s) (PIDs: #{rails_pids.join(', ')})"
+        stopped_any = true
+      end
+      
+      # Stop Vite processes
+      vite_pids = `pgrep -f 'vite dev'`.split.map(&:strip).reject(&:empty?)
+      unless vite_pids.empty?
+        vite_pids.each do |pid|
+          system("kill #{pid}")
+        end
+        puts "✅ Stopped Vite dev server(s) (PIDs: #{vite_pids.join(', ')})"
+        stopped_any = true
+      end
+      
+      # Clean up PID files
+      FileUtils.rm_f(Dir.glob('tmp/pids/*.pid'))
+      
+      if stopped_any
+        puts "✅ Development servers stopped!"
+      else
+        puts "ℹ️  No servers were running"
+      end
+    end
+
+    def restart
+      puts "🔄 Restarting UML Factory development servers..."
+      stop
+      sleep 2
+      start
+    end
+
+    def status
+      puts "📊 UML Factory Development Server Status"
+      puts "=" * 40
+      
+      # Check Rails
+      rails_pids = `pgrep -f 'rails server'`.split.map(&:strip).reject(&:empty?)
+      if rails_pids.any?
+        puts "📱 Rails:  ✅ Running (PIDs: #{rails_pids.join(', ')}, Port: #{RAILS_PORT})"
+      else
+        puts "📱 Rails:  ❌ Stopped"
+      end
+
+      # Check Vite
+      vite_pids = `pgrep -f 'vite dev'`.split.map(&:strip).reject(&:empty?)
+      if vite_pids.any?
+        puts "⚡ Vite:   ✅ Running (PIDs: #{vite_pids.join(', ')}, Port: #{VITE_PORT})"
+      else
+        puts "⚡ Vite:   ❌ Stopped"
+      end
+      
+      puts ""
+      if rails_pids.empty? || vite_pids.empty?
+        puts "To start: bin/run start (for instructions)"
+      end
+      puts "To stop:  bin/run stop"
+    end
+
+    def dev
+      puts "🚀 Starting UML Factory in development mode..."
+      puts ""
+      
+      # Check if servers are already running
+      rails_running = !`pgrep -f 'rails server'`.strip.empty?
+      vite_running = !`pgrep -f 'vite dev'`.strip.empty?
+      
+      if rails_running && vite_running
+        puts "✅ Both servers are already running!"
+        status
+        return
+      end
+      
+      if rails_running
+        puts "⚠️  Rails is already running"
+      end
+      
+      if vite_running
+        puts "⚠️  Vite is already running"
+      end
+      
+      puts "Starting servers in background..."
+      
+      # Start Rails if not running
+      unless rails_running
+        puts "📱 Starting Rails server..."
+        rails_pid = spawn('bundle', 'exec', 'rails', 'server', '--port', RAILS_PORT.to_s,
+                         out: 'log/rails.log', err: 'log/rails.log')
+        Process.detach(rails_pid)
+        sleep 2
+      end
+      
+      # Start Vite if not running
+      unless vite_running
+        puts "⚡ Starting Vite dev server..."
+        vite_pid = spawn('bundle', 'exec', 'vite', 'dev',
+                        out: 'log/vite.log', err: 'log/vite.log')
+        Process.detach(vite_pid)
+        sleep 2
+      end
+      
+      # Check status
+      sleep 1
+      puts ""
+      status
+      
+      puts ""
+      puts "📱 Rails: http://localhost:#{RAILS_PORT}"
+      puts "⚡ Vite:  http://localhost:#{VITE_PORT}/vite-dev/"
+      puts ""
+      puts "Logs:"
+      puts "  Rails: tail -f log/rails.log"
+      puts "  Vite:  tail -f log/vite.log"
+    end
+  end
+
+  # Handle Ctrl+C gracefully
+  trap('INT') do
+    puts "\n\n🛑 Received interrupt signal..."
+    ProcessManager.new.stop
+    exit 0
+  end
+
+  # Parse command line arguments
+  command = ARGV[0]&.downcase
+
+  case command
+  when 'start'
+    ProcessManager.new.start
+  when 'dev'
+    ProcessManager.new.dev
+  when 'stop'
+    ProcessManager.new.stop
+  when 'restart'
+    ProcessManager.new.restart
+  when 'status'
+    ProcessManager.new.status
+  else
+    puts "🏭 UML Factory Development Server Manager"
+    puts "=" * 40
+    puts "Usage: bin/run [command]"
+    puts ""
+    puts "Commands:"
+    puts "  start    - Show instructions to start servers manually"
+    puts "  dev      - Start servers in background (experimental)"
+    puts "  stop     - Stop all development servers"
+    puts "  restart  - Restart all development servers"
+    puts "  status   - Show server status"
+    puts ""
+    puts "Examples:"
+    puts "  bin/run start"
+    puts "  bin/run dev"
+    puts "  bin/run stop"
+    puts "  bin/run status"
+    exit 1
+  end
+end

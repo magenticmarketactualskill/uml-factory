@@ -10,11 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@inertiajs/juris": "git+https://github.com/magenticmarketactualskill/inertia-juris.git#packages/juris",
-    "juris": "latest",
-    "axios": "^1.6.0"
+    "@inertiajs/react": "^1.0.0",
+    "axios": "^1.6.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.2",
     "vite": "^5.0.0",
     "vite-plugin-ruby": "^5.0.0"
   },

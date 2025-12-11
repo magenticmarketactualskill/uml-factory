@@ -28,6 +28,6 @@ module UmlFactory
     config.assets.enabled = false
     
     # Inertia Rails configuration
-    config.middleware.use Inertia::Middleware
+    config.middleware.use InertiaRails::Middleware
   end
 end
